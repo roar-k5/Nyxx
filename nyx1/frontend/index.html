@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NYXX Mind</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="screen intro-screen" aria-label="Welcome">
+        <div class="intro-copy">
+          <p>Meet the</p>
+          <h1>NYXX Mind!</h1>
+        </div>
+
+        <div class="bubble bubble-help">Need our help now?</div>
+        <div class="bot-wrap large-bot" aria-hidden="true">
+          <div class="bot-antenna left"></div>
+          <div class="bot-antenna right"></div>
+          <div class="bot-head">
+            <div class="bot-eye"></div>
+            <div class="bot-eye"></div>
+          </div>
+          <div class="bot-body">
+            <span></span>
+          </div>
+          <div class="bot-arm left"></div>
+          <div class="bot-arm right"></div>
+          <div class="bot-foot left"></div>
+          <div class="bot-foot right"></div>
+        </div>
+
+        <button class="primary-pill" type="button" data-open-chat>
+          <span class="arrow">&gt;</span>
+          Get Started
+          <span class="chevrons">&gt;&gt;&gt;</span>
+        </button>
+      </section>
+
+      <section class="screen home-screen" aria-label="Dashboard">
+        <header class="profile-row">
+          <div class="avatar">N</div>
+          <strong>NYXX Companion</strong>
+          <button class="icon-button" type="button" aria-label="Notifications">!</button>
+        </header>
+
+        <div class="mode-grid">
+          <button class="mode-card" type="button" data-open-chat>
+            <span class="mode-icon">[]</span>
+            <span>Chat with<br />NYXX Mind</span>
+          </button>
+          <button class="mode-card" type="button" data-open-voice>
+            <span class="mode-icon">()</span>
+            <span>Talk with<br />NYXX Mind</span>
+          </button>
+        </div>
+
+        <section class="panel topics-panel">
+          <div class="section-title">
+            <h2>Topics</h2>
+            <button type="button">View all</button>
+          </div>
+          <div class="topic-list">
+            <button type="button"><span>UP</span>Growth</button>
+            <button type="button"><span>OK</span>Health</button>
+            <button type="button"><span>&lt;/&gt;</span>Focus</button>
+            <button type="button"><span>BR</span>Work</button>
+          </div>
+        </section>
+
+        <section class="panel history-panel">
+          <div class="section-title">
+            <h2>History</h2>
+            <button type="button">View All</button>
+          </div>
+          <button class="history-item" type="button" data-sample="I feel anxious and need to calm down.">
+            <span>()</span>
+            <span>
+              <strong>Feeling anxious today?</strong>
+              <small>Tap to continue</small>
+            </span>
+          </button>
+          <button class="history-item" type="button" data-sample="Help me reflect on my day.">
+            <span>[]</span>
+            <span>
+              <strong>Daily reflection</strong>
+              <small>NYXX Mind</small>
+            </span>
+          </button>
+        </section>
+      </section>
+
+      <section class="screen voice-screen" aria-label="Voice assessment">
+        <header class="voice-header">
+          <button class="round-button" type="button" data-back-home aria-label="Back">&lt;</button>
+          <strong>Voice Assessment</strong>
+          <span></span>
+        </header>
+        <p class="listening">Go ahead, I'm listening...</p>
+        <canvas id="voiceCanvas" width="320" height="260" aria-label="Animated voice pattern"></canvas>
+        <div class="voice-copy">
+          <h2>Fluid organic shapes dance</h2>
+          <p>across the canvas, conveying calm focus and emotional harmony.</p>
+        </div>
+        <div class="voice-actions">
+          <button class="round-button" type="button" aria-label="Edit">ED</button>
+          <button class="mic-button" type="button" data-open-chat aria-label="Open chat">()</button>
+          <button class="round-button" type="button" aria-label="Saved">SV</button>
+        </div>
+      </section>
+
+      <section class="chat-stage" aria-label="Chat with NYXX">
+        <div class="chat-hero">
+          <h2>Chat With <span>NYXX Mind!</span></h2>
+          <div class="mini-bot" aria-hidden="true">
+            <div class="mini-head"><span></span><span></span></div>
+            <div class="mini-body"></div>
+          </div>
+        </div>
+
+        <div class="chat-window">
+          <div class="messages" id="messages">
+            <article class="message assistant">
+              <span class="sender">NYXX Mind</span>
+              <p>Hi, I'm here. Tell me what's happening, and we'll take it one step at a time.</p>
+            </article>
+          </div>
+
+          <form class="composer" id="chatForm">
+            <input
+              id="messageInput"
+              name="message"
+              type="text"
+              autocomplete="off"
+              placeholder="Share what's on your mind..."
+              required
+            />
+            <button type="submit" aria-label="Send message">-&gt;</button>
+          </form>
+          <p class="status" id="status" role="status"></p>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
