@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../theme/app_colors.dart';
 
 class MoodDashboard extends StatefulWidget {
   const MoodDashboard({super.key});
@@ -59,28 +60,26 @@ class _MoodDashboardState extends State<MoodDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final textPrimary = AppColors.textPrimary(context);
+    final textSecondary = AppColors.textSecondary(context);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF18083B),
-        elevation: 0,
-        title: const Text('Mood Dashboard'),
+        title: Text(
+          'Mood Dashboard',
+          style: TextStyle(color: textPrimary),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF090225), Color(0xFF18083B), Color(0xFF2D1150)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: AppColors.pageGradient(context)),
         child: _loading
             ? const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9A69FF)),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               )
             : _error != null
@@ -100,12 +99,12 @@ class _MoodDashboardState extends State<MoodDashboard> {
                       ],
                     ),
                   )
-                : _buildDashboard(),
+                : _buildDashboard(context),
       ),
     );
   }
 
-  Widget _buildDashboard() {
+  Widget _buildDashboard(BuildContext context) {
     final emotion = _moodData?['emotion'] ?? 'neutral';
     final trend = _moodData?['trend'] ?? 'no_data';
     final stats = _moodData?['stats'] ?? {};
@@ -121,14 +120,15 @@ class _MoodDashboardState extends State<MoodDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCard(
+            context: context,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Current Mood',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFFBDB0D8),
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -158,14 +158,15 @@ class _MoodDashboardState extends State<MoodDashboard> {
           ),
           const SizedBox(height: 16),
           _buildCard(
+            context: context,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '7-Day Trend',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFFBDB0D8),
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -188,7 +189,7 @@ class _MoodDashboardState extends State<MoodDashboard> {
                   '$total entries tracked',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: textSecondary,
                   ),
                 ),
               ],
@@ -197,34 +198,36 @@ class _MoodDashboardState extends State<MoodDashboard> {
           const SizedBox(height: 16),
           if (stats.isNotEmpty) ...[
             _buildCard(
+              context: context,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Emotion Breakdown',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFFBDB0D8),
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
                     height: 200,
-                    child: _buildPieChart(stats),
+                    child: _buildPieChart(context, stats),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             _buildCard(
+              context: context,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Details',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFFBDB0D8),
+                      color: textSecondary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -247,9 +250,9 @@ class _MoodDashboardState extends State<MoodDashboard> {
                           Expanded(
                             child: Text(
                               '${e.key}  $count entries',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.white,
+                                color: textPrimary,
                               ),
                             ),
                           ),
@@ -274,7 +277,7 @@ class _MoodDashboardState extends State<MoodDashboard> {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required BuildContext context, required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -283,20 +286,29 @@ class _MoodDashboardState extends State<MoodDashboard> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: 0.08),
-            Colors.white.withValues(alpha: 0.02),
+            AppColors.surface(context).withValues(
+              alpha: AppColors.isDark(context) ? 0.94 : 0.9,
+            ),
+            AppColors.surfaceSoft(context),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: AppColors.border(context),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: child,
     );
   }
 
-  Widget _buildPieChart(Map<String, dynamic> stats) {
+  Widget _buildPieChart(BuildContext context, Map<String, dynamic> stats) {
     final entries = stats.entries.toList();
     final total = entries.fold<int>(
       0,
@@ -304,10 +316,10 @@ class _MoodDashboardState extends State<MoodDashboard> {
     );
 
     if (total == 0) {
-      return const Center(
+      return Center(
         child: Text(
           'No data yet',
-          style: TextStyle(color: Color(0xFFBDB0D8)),
+          style: TextStyle(color: AppColors.textSecondary(context)),
         ),
       );
     }
@@ -324,10 +336,10 @@ class _MoodDashboardState extends State<MoodDashboard> {
             value: pct * 100,
             title: '${(pct * 100).toStringAsFixed(0)}%',
             radius: 60,
-            titleStyle: const TextStyle(
+            titleStyle: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: AppColors.textPrimary(context),
             ),
           );
         }).toList(),
@@ -355,7 +367,7 @@ class _MoodDashboardState extends State<MoodDashboard> {
       case 'distressed':
         return const Color(0xFFFF68D7);
       default:
-        return const Color(0xFF9A69FF);
+        return AppColors.primary;
     }
   }
 
@@ -377,7 +389,7 @@ class _MoodDashboardState extends State<MoodDashboard> {
       case 'declining':
         return const Color(0xFFFF5F5F);
       default:
-        return const Color(0xFF69F1FF);
+        return AppColors.secondary;
     }
   }
 }

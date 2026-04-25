@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 import 'crisis_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -122,20 +123,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textPrimary = AppColors.textPrimary(context);
+    final textSecondary = AppColors.textSecondary(context);
+    final border = AppColors.border(context);
+    final isDark = AppColors.isDark(context);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF18083B),
-        elevation: 0,
         title: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 38,
+              height: 38,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Color(0xFFFF68D7), Color(0xFF9A69FF)],
-                ),
+                gradient: AppColors.primaryGradient,
               ),
               child: const Center(
                 child: Text(
@@ -153,38 +155,37 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _userName == null ? 'NYX Mind' : 'NYX Mind • $_userName',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                if (_isLoading)
-                  const Text(
-                    'typing...',
-                    style: TextStyle(fontSize: 12, color: Color(0xFFBDB0D8)),
+                  _userName == null ? 'NYX Mind' : 'NYX Mind - $_userName',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textPrimary,
                   ),
+                ),
+                Text(
+                  _isLoading ? 'typing...' : 'soft space, no pressure',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: textSecondary,
+                  ),
+                ),
               ],
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.insights, color: Color(0xFF9A69FF)),
+            icon: const Icon(Icons.insights, color: AppColors.primary),
             onPressed: () => Navigator.pushNamed(context, '/mood'),
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFFBDB0D8)),
+            icon: const Icon(Icons.logout, color: AppColors.textSecondary),
             onPressed: _logout,
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF090225), Color(0xFF18083B), Color(0xFF2D1150)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: AppColors.pageGradient(context)),
         child: Column(
           children: [
             Expanded(
@@ -204,20 +205,32 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        maxWidth: MediaQuery.of(context).size.width * 0.78,
                       ),
                       decoration: BoxDecoration(
                         color: isUser
-                            ? const Color(0xFF564177).withValues(alpha: 0.66)
-                            : const Color(0xFF36235B).withValues(alpha: 0.52),
+                            ? AppColors.primary.withValues(
+                                alpha: isDark ? 0.24 : 0.16,
+                              )
+                            : AppColors.surface(context)
+                                .withValues(alpha: isDark ? 0.92 : 0.82),
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
                           color: crisis
-                              ? Colors.red.withValues(alpha: 0.5)
-                              : Colors.white.withValues(alpha: 0.1),
+                              ? AppColors.danger.withValues(alpha: 0.4)
+                              : border,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,27 +241,27 @@ class _ChatScreenState extends State<ChatScreen> {
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: isUser
-                                  ? const Color(0xFFD9CAFF)
-                                  : const Color(0xFF9A69FF),
+                                  ? AppColors.primaryDark
+                                  : AppColors.secondary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             msg['content'] ?? '',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white,
-                              height: 1.4,
+                              color: textPrimary,
+                              height: 1.45,
                             ),
                           ),
                           if (emotion != null && !isUser)
                             Padding(
-                              padding: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.only(top: 6),
                               child: Text(
                                 'emotion: $emotion',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                  color: textSecondary,
                                 ),
                               ),
                             ),
@@ -266,10 +279,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF36235B).withValues(alpha: 0.52),
+                        color: AppColors.surface(context)
+                            .withValues(alpha: isDark ? 0.92 : 0.84),
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: border),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -286,9 +303,10 @@ class _ChatScreenState extends State<ChatScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF18083B).withValues(alpha: 0.8),
+                color: AppColors.surface(context)
+                    .withValues(alpha: isDark ? 0.85 : 0.7),
                 border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  top: BorderSide(color: border),
                 ),
               ),
               child: SafeArea(
@@ -297,16 +315,16 @@ class _ChatScreenState extends State<ChatScreen> {
                     Expanded(
                       child: TextField(
                         controller: _messageController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: textPrimary),
                         decoration: InputDecoration(
                           hintText: 'Share what\'s on your mind...',
-                          hintStyle:
-                              TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                          hintStyle: TextStyle(color: textSecondary),
                           filled: true,
-                          fillColor: const Color(0xFF0D0522).withValues(alpha: 0.66),
+                          fillColor: AppColors.surface(context)
+                              .withValues(alpha: isDark ? 0.96 : 0.92),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(27),
-                            borderSide: BorderSide.none,
+                            borderSide: BorderSide(color: border),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -324,7 +342,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         height: 50,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Color(0xFF9A69FF),
+                          gradient: AppColors.primaryGradient,
                         ),
                         child: const Icon(
                           Icons.send,
@@ -351,8 +369,9 @@ class _ChatScreenState extends State<ChatScreen> {
       height: 8,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF9A69FF).withValues(
-          alpha: 0.5 + 0.5 * ((DateTime.now().millisecond / 1000 + index * 0.3) % 1),
+        color: AppColors.primary.withValues(
+          alpha:
+              0.5 + 0.5 * ((DateTime.now().millisecond / 1000 + index * 0.3) % 1),
         ),
       ),
     );

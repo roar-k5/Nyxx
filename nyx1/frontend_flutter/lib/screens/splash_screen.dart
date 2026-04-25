@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -45,15 +46,11 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final textSecondary = AppColors.textSecondary(context);
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF090225), Color(0xFF18083B), Color(0xFF2D1150)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: AppColors.pageGradient(context)),
         child: Center(
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -65,12 +62,10 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF68D7), Color(0xFF9A69FF)],
-                    ),
+                    gradient: AppColors.primaryGradient,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF9A69FF).withValues(alpha: 0.4),
+                        color: AppColors.primary.withValues(alpha: 0.28),
                         blurRadius: 30,
                         spreadRadius: 5,
                       ),
@@ -88,25 +83,25 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'NYX Mind',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF9A69FF),
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Your mental health companion',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFFBDB0D8),
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 48),
                 const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF9A69FF)),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               ],
             ),
