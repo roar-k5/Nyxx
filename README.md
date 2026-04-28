@@ -147,11 +147,11 @@ Create `backend/.env`:
 ```env
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/nyx
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY=your_g...here
 GROQ_MODEL=llama-3.3-70b-versatile
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY=your_g...here
 LLM_PROVIDER=groq
-JWT_SECRET_KEY=generate_a_strong_random_secret_here
+JWT_SECRET_KEY=genera...here
 ```
 
 ### 3. Run the Server

@@ -135,9 +135,9 @@ class ApiService {
     // 1. Check environment variable (set at build time)
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
     
-    // 2. For web production (Fly.io)
+    // 2. For web production (Render)
     if (kIsWeb) {
-      return 'https://nyx-backend.fly.dev';
+      return 'https://nyx-backend-g26r.onrender.com';
     }
     
     // 3. Mobile emulators

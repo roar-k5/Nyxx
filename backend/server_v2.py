@@ -27,6 +27,12 @@ CORS_ORIGINS: List[str] = [origin.strip() for origin in ALLOWED_ORIGINS.split(",
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 DEV_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1)(:\d+)?$" if ENVIRONMENT != "production" else None
 
+# Allow all origins wildcard if explicitly set (useful for Vercel/Render multi-domain)
+_ALLOW_ALL = os.getenv("CORS_ALLOW_ALL", "").lower() in {"1", "true", "yes", "on"}
+if _ALLOW_ALL:
+    CORS_ORIGINS = ["*"]
+    DEV_ORIGIN_REGEX = None
+
 
 from backend.services.health_checker import llm_health_checker
 
