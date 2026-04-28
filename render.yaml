@@ -4,7 +4,7 @@ services:
     runtime: docker
     repo: https://github.com/roar-k5/Nyxx.git
     branch: master
-    rootDir: nyx1
+    rootDir: .
     dockerfilePath: Dockerfile
     envVars:
       - key: ENVIRONMENT
