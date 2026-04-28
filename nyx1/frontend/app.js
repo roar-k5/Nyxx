@@ -1,7 +1,12 @@
-const API_URL =
+// API Base URL - change this to your deployed backend URL
+// For local dev: http://localhost:5000
+// For production: https://your-backend.onrender.com
+const API_BASE =
   window.location.protocol === "file:"
-    ? "http://localhost:8000/api/chat/send"
-    : `${window.location.origin}/api/chat/send`;
+    ? "http://localhost:5000"
+    : (window.API_BASE_URL || window.location.origin);
+
+const API_URL = `${API_BASE}/api/chat/send`;
 
 const messagesEl = document.querySelector("#messages");
 const form = document.querySelector("#chatForm");

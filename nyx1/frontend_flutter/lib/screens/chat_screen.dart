@@ -179,7 +179,7 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => Navigator.pushNamed(context, '/mood'),
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.textSecondary),
+            icon: Icon(Icons.logout, color: textSecondary),
             onPressed: _logout,
           ),
         ],

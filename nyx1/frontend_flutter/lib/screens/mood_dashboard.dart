@@ -109,6 +109,8 @@ class _MoodDashboardState extends State<MoodDashboard> {
     final trend = _moodData?['trend'] ?? 'no_data';
     final stats = _moodData?['stats'] ?? {};
     final total = _moodData?['total_entries'] ?? 0;
+    final textPrimary = AppColors.textPrimary(context);
+    final textSecondary = AppColors.textSecondary(context);
 
     final emotionColor = _emotionColor(emotion);
     final trendIcon = _trendIcon(trend);
