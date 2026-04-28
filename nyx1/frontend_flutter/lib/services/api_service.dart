@@ -132,9 +132,21 @@ class ApiService {
       String.fromEnvironment('NYX_API_BASE_URL');
 
   static String get baseUrl {
+    // 1. Check environment variable (set at build time)
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
-    if (kIsWeb) return 'http://localhost:5000';
+    
+    // 2. For web production (Vercel)
+    if (kIsWeb) {
+      // If running on localhost, use local backend
+      // If running on Vercel, use production backend
+      return 'https://nyx-backend.onrender.com';
+    }
+    
+    // 3. Mobile emulators
     if (Platform.isAndroid) return 'http://10.0.2.2:5000';
+    if (Platform.isIOS) return 'http://localhost:5000';
+    
+    // 4. Default fallback
     return 'http://localhost:5000';
   }
 
