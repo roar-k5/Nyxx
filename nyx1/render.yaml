@@ -3,7 +3,7 @@ services:
     name: nyx-backend
     runtime: docker
     repo: https://github.com/roar-k5/Nyxx.git
-    branch: main
+    branch: master
     rootDir: .
     dockerfilePath: ./Dockerfile
     envVars:
