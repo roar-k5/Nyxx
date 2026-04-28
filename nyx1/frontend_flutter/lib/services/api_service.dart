@@ -135,11 +135,9 @@ class ApiService {
     // 1. Check environment variable (set at build time)
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
     
-    // 2. For web production (Vercel)
+    // 2. For web production (Fly.io)
     if (kIsWeb) {
-      // If running on localhost, use local backend
-      // If running on Vercel, use production backend
-      return 'https://nyx-backend.onrender.com';
+      return 'https://nyx-backend.fly.dev';
     }
     
     // 3. Mobile emulators
