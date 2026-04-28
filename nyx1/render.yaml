@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: nyx-backend
+    runtime: docker
+    repo: https://github.com/yourusername/nyx-backend
+    branch: main
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PORT
+        value: 5000
+      - key: UVICORN_WORKERS
+        value: 1
+      - key: MONGO_URI
+        sync: false  # Set manually in dashboard
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true  # Auto-generate a random secret
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: CORS_ORIGINS
+        sync: false  # Set to your frontend URL
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: free

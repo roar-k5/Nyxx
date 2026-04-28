@@ -1,0 +1,22 @@
+[Unit]
+Description=NYX Backend FastAPI Server
+After=network.target
+
+[Service]
+Type=simple
+User=rudra
+Group=rudra
+WorkingDirectory=/mnt/c/Users/rudra/Desktop/project/hermes/nyx1
+Environment=PATH=/mnt/c/Users/rudra/Desktop/project/hermes/nyx1/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=ENVIRONMENT=production
+EnvironmentFile=/mnt/c/Users/rudra/Desktop/project/hermes/nyx1/backend/.env
+ExecStart=/mnt/c/Users/rudra/Desktop/project/hermes/nyx1/.venv/bin/python -m uvicorn backend.server_v2:app --host 0.0.0.0 --port 5000 --workers 2
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nyx-backend
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  nyx-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nyx-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - backend/.env
+    environment:
+      - UVICORN_WORKERS=2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Optional: resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  # Optional: MongoDB container if you want local MongoDB instead of Atlas
+  # mongodb:
+  #   image: mongo:7
+  #   container_name: nyx-mongodb
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   restart: unless-stopped
+
+# volumes:
+#   mongodb_data:

@@ -12,6 +12,7 @@ from backend.models.message import save_message
 from backend.services.analyzer import analyze_message
 from backend.services.post_processor import PostProcessor
 from backend.services.risk_engine import RiskEngine
+from backend.safety.prompt_injection_filter import sanitize_for_llm
 
 
 class HistoryMessage(BaseModel):
@@ -20,39 +21,59 @@ class HistoryMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(min_length=1)
+    message: str = Field(..., min_length=1, max_length=2000)
     history: List[HistoryMessage] = Field(default_factory=list)
 
 
-DEMO_HELPLINES: List[Dict[str, Any]] = [
-    {
-        "name": "Tele MANAS (Demo)",
-        "number": "14416-DEMO",
-        "real_number": "14416",
-        "available": "24/7",
-        "languages": "22 languages",
-    },
-    {
-        "name": "KIRAN Helpline (Demo)",
-        "number": "1-800-TEST-HELP",
-        "real_number": "1800-599-0019",
-        "available": "24/7",
-    },
-    {
-        "name": "Vandrevala Foundation (Demo)",
-        "number": "+91-99999-DEMO",
-        "real_number": "9999666555",
-        "available": "24/7",
-        "whatsapp": True,
-    },
-    {
-        "name": "Emergency Services (Demo)",
-        "number": "911-DEMO",
-        "real_number": "112",
-        "available": "24/7",
-        "note": "Police/Ambulance",
-    },
-]
+def _load_helplines() -> List[Dict[str, Any]]:
+    """Load helplines from environment or use defaults.
+    
+    Users can configure their own helplines via:
+    - HELPLINES_JSON: Full JSON array of helpline objects
+    - HELPLINE_1_NAME + HELPLINE_1_NUMBER: Individual helplines (up to 5)
+    """
+    import json
+    env_helplines = os.getenv("HELPLINES_JSON")
+    if env_helplines:
+        try:
+            return json.loads(env_helplines)
+        except json.JSONDecodeError:
+            pass
+    
+    # Check for individually configured helplines
+    custom_helplines = []
+    for i in range(1, 6):
+        name = os.getenv(f"HELPLINE_{i}_NAME")
+        number = os.getenv(f"HELPLINE_{i}_NUMBER")
+        if name and number:
+            custom_helplines.append({
+                "name": name,
+                "number": number,
+                "available": os.getenv(f"HELPLINE_{i}_AVAILABLE", "24/7"),
+                "note": os.getenv(f"HELPLINE_{i}_NOTE", ""),
+            })
+    
+    if custom_helplines:
+        return custom_helplines
+    
+    # Demo fallback helplines - clearly marked as demo/not real
+    return [
+        {
+            "name": "Demo Helpline 1 (NOT REAL)",
+            "number": "0000-DEMO-0000",
+            "available": "Demo only",
+            "note": "This is a demo app. Add your own helplines via HELPLINES_JSON or HELPLINE_1_NAME/NUMBER env vars.",
+        },
+        {
+            "name": "Demo Emergency (NOT REAL)",
+            "number": "0000-DEMO-911",
+            "available": "Demo only",
+            "note": "Configure real emergency numbers before using in production.",
+        },
+    ]
+
+
+DEMO_HELPLINES: List[Dict[str, Any]] = _load_helplines()
 
 
 def _client() -> Optional[AsyncGroq]:
@@ -177,9 +198,36 @@ def _build_prompt(message: str, history: List[Dict[str, str]], analysis: Analysi
     ]
 
 
+from backend.middleware.security_logging import security_logger
+
+
 async def send_message(payload: ChatRequest, request: Request) -> Dict[str, Any]:
     try:
-        message = payload.message.strip()
+        # Sanitize user input
+        try:
+            message = sanitize_for_llm(payload.message.strip())
+        except ValueError as e:
+            security_logger.prompt_injection_attempt(
+                getattr(request.state, 'user_id', 'anonymous'),
+                'injection_pattern_detected',
+                request.client.host if request.client else None
+            )
+            return {
+                "response": str(e),
+                "emotion": "neutral",
+                "crisis": False,
+                "analysis": {
+                    "primary_emotion": "neutral",
+                    "sentiment_score": 0.0,
+                    "intent": "general_chat",
+                    "crisis_level": "low",
+                    "risk_score": 1,
+                    "key_concerns": ["input_validation"],
+                    "suggested_strategy": "Respond with gentle empathy",
+                },
+                "disclaimer": "I'm an AI companion, not a therapist.",
+            }
+
         history = [item.model_dump() for item in payload.history]
 
         raw_analysis = await analyze_message(message)
@@ -208,6 +256,11 @@ async def send_message(payload: ChatRequest, request: Request) -> Dict[str, Any]
                     "stay_option": "I'm here while you call",
                 }
             )
+            security_logger.crisis_detected(
+                getattr(request.state, 'user_id', 'anonymous'),
+                analysis.risk_score,
+                request.client.host if request.client else None
+            )
 
         database = getattr(request.app.state, "database", None)
         await asyncio.gather(
@@ -216,9 +269,19 @@ async def send_message(payload: ChatRequest, request: Request) -> Dict[str, Any]
             return_exceptions=True,
         )
 
+        security_logger.chat_message(
+            getattr(request.state, 'user_id', 'anonymous'),
+            len(message),
+            analysis.primary_emotion,
+            bool(risk.escalate),
+            request.client.host if request.client else None
+        )
+
         return result
     except Exception as exc:
-        print(f"Chat flow failed: {exc}")
+        # Log detailed error internally, return generic message to client
+        import logging
+        logging.getLogger("nyx.chat").error(f"Chat flow failed: {exc}", exc_info=True)
         return {
             "response": "Something went wrong while NYXX was responding. Please try again.",
             "emotion": "neutral",

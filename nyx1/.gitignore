@@ -1,12 +1,51 @@
-.env
-.env.*
-!.env.example
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 .Python
-.venv/
-venv/
 env/
-node_modules/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+
+# Logs
+*.log
+
+# Temp
+temp_nyx_repo/
+*.tmp
+
+# Deployment artifacts (keep configs, ignore local scripts if needed)
+# nyx-backend.service
+# install-service.sh

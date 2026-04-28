@@ -3,21 +3,29 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from backend.database.db import get_db as get_mongo_db
 
-_SQLITE_PATH = os.path.join(os.path.dirname(__file__), "nyx.sqlite")
+# Store SQLite outside the project directory to prevent accidental exposure
+# In production, set SQLITE_PATH to a secure location (e.g., /var/lib/nyx/nyx.sqlite)
+_SQLITE_PATH = os.getenv("SQLITE_PATH", os.path.join(os.path.dirname(__file__), "nyx.sqlite"))
 _sqlite_conn: Optional[sqlite3.Connection] = None
+_sqlite_lock = threading.Lock()
 
 
 def _get_sqlite() -> sqlite3.Connection:
     global _sqlite_conn
     if _sqlite_conn is None:
-        _sqlite_conn = sqlite3.connect(_SQLITE_PATH, check_same_thread=False)
-        _sqlite_conn.row_factory = sqlite3.Row
-        _init_tables()
+        with _sqlite_lock:
+            if _sqlite_conn is None:
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(_SQLITE_PATH), exist_ok=True)
+                _sqlite_conn = sqlite3.connect(_SQLITE_PATH, check_same_thread=False)
+                _sqlite_conn.row_factory = sqlite3.Row
+                _init_tables()
     return _sqlite_conn
 
 
@@ -75,5 +83,7 @@ async def close_db() -> None:
     from backend.database.db import close_db as close_mongo
     await close_mongo()
     if _sqlite_conn:
-        _sqlite_conn.close()
-        _sqlite_conn = None
+        with _sqlite_lock:
+            if _sqlite_conn:
+                _sqlite_conn.close()
+                _sqlite_conn = None

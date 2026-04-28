@@ -474,11 +474,22 @@ class LLMService:
             return data["choices"][0]["message"]["content"].strip()
 
     async def _call_gemini(self, prompt: str) -> str:
-        """Call Gemini API."""
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-        )
+        """Call Gemini API with timeout."""
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _generate():
+            return self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+            )
+
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as pool:
+            response = await asyncio.wait_for(
+                loop.run_in_executor(pool, _generate),
+                timeout=30,
+            )
         return response.text.strip()  # type: ignore
 
     async def _call_groq(self, prompt: str) -> str:

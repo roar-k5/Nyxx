@@ -1,18 +1,34 @@
-"""NYX v2 Server — extended app with auth, mood, safety, multi-provider LLM."""
 import os
 from contextlib import asynccontextmanager
+from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.authentication.auth_routes import router as auth_router
+# Load environment variables FIRST, before any backend modules that need them
 from backend.config.env import FRONTEND_DIR
+
+from backend.authentication.auth_routes import router as auth_router
 from backend.database.db import close_db, get_db
+from backend.middleware.rate_limiter import auth_limiter, chat_limiter, public_limiter, rate_limit
 from backend.routes.chat import router as chat_router
 from backend.routes.mood import router as mood_router
 from backend.routes.analyze import router as analyze_router
 from backend.routes.crisis import router as crisis_router
+
+# CORS: configure allowed origins via env, default to localhost only
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5000,http://localhost:3000,http://10.0.2.2:5000")
+CORS_ORIGINS: List[str] = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+# In development, Flutter web runs on a random localhost port (e.g. http://localhost:51834),
+# so we allow localhost/127.0.0.1 on any port via regex.
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+DEV_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1)(:\d+)?$" if ENVIRONMENT != "production" else None
+
+
+from backend.services.health_checker import llm_health_checker
 
 
 @asynccontextmanager
@@ -23,6 +39,13 @@ async def lifespan(app: FastAPI):
     else:
         print("MONGO_URI is not set. Starting without MongoDB.")
 
+    # Check LLM provider health
+    llm_health = await llm_health_checker.check()
+    if llm_health["healthy"]:
+        print(f"LLM provider ({llm_health['provider']}) is healthy.")
+    else:
+        print(f"WARNING: LLM provider ({llm_health['provider']}) health check failed: {llm_health['message']}")
+
     try:
         yield
     finally:
@@ -31,27 +54,45 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="NYXX Backend v2", version="2.1.0", lifespan=lifespan)
 
+# Security middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=DEV_ORIGIN_REGEX,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# Optional: enforce trusted hosts in production
+if ENVIRONMENT == "production":
+    TRUSTED_HOSTS = os.getenv("TRUSTED_HOSTS", "")
+    if TRUSTED_HOSTS:
+        allowed_hosts = [host.strip() for host in TRUSTED_HOSTS.split(",") if host.strip()]
+        app.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=allowed_hosts,
+        )
+    else:
+        print("WARNING: ENVIRONMENT=production but TRUSTED_HOSTS not set. Skipping TrustedHostMiddleware.")
 
 
 @app.get("/health")
-async def health():
-    return {"status": "ok"}
+async def health(request: Request):
+    public_limiter.raise_if_limited(request)
+    llm_health = await llm_health_checker.check()
+    return {
+        "status": "ok",
+        "llm_provider": llm_health["provider"],
+        "llm_healthy": llm_health["healthy"],
+    }
 
 
 @app.get("/config/status")
-async def config_status():
+async def config_status(request: Request):
+    public_limiter.raise_if_limited(request)
     return {
-        "groqConfigured": bool(os.getenv("GROQ_API_KEY")),
-        "geminiConfigured": bool(os.getenv("GEMINI_API_KEY")),
-        "mongoConfigured": bool(os.getenv("MONGO_URI")),
-        "model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        "status": "ok",
         "llmProvider": os.getenv("LLM_PROVIDER", "groq"),
     }
 
@@ -66,12 +107,30 @@ if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    if ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
 if __name__ == "__main__":
     import uvicorn
 
+    reload = ENVIRONMENT != "production"
+    workers = 1 if reload else int(os.getenv("UVICORN_WORKERS", "2"))
+    
     uvicorn.run(
         "backend.server_v2:app",
         host="0.0.0.0",
         port=int(os.getenv("PORT", "5000")),
-        reload=True,
+        reload=reload,
+        workers=workers,
     )

@@ -7,7 +7,9 @@ from passlib.context import CryptContext
 
 from backend.authentication.auth_model import UserLogin, UserRegister
 from backend.authentication.jwt_utils import create_access_token
+from backend.authentication.password_validator import validate_password
 from backend.database.sqlite_fallback import get_db_sync
+from backend.middleware.security_logging import security_logger
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -20,9 +22,16 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-async def register_user(payload: UserRegister) -> Dict[str, Any]:
+async def register_user(payload: UserRegister, client_ip: str | None = None) -> Dict[str, Any]:
+    # Validate password strength
+    is_valid, error_msg = validate_password(payload.password)
+    if not is_valid:
+        security_logger.auth_register(payload.email, False, client_ip, error_msg)
+        return {"error": error_msg}
+
     db = get_db_sync()
     if db is None:
+        security_logger.auth_register(payload.email, False, client_ip, "Database not available")
         return {"error": "Database not available"}
 
     # Check if user already exists
@@ -30,6 +39,7 @@ async def register_user(payload: UserRegister) -> Dict[str, Any]:
         # MongoDB
         existing = await db.users.find_one({"email": payload.email})
         if existing:
+            security_logger.auth_register(payload.email, False, client_ip, "Email already registered")
             return {"error": "Email already registered"}
         user_doc = {
             "email": payload.email,
@@ -42,6 +52,7 @@ async def register_user(payload: UserRegister) -> Dict[str, Any]:
         # SQLite
         cursor = db.execute("SELECT id FROM users WHERE email = ?", (payload.email,))
         if cursor.fetchone():
+            security_logger.auth_register(payload.email, False, client_ip, "Email already registered")
             return {"error": "Email already registered"}
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc).isoformat()
@@ -53,6 +64,7 @@ async def register_user(payload: UserRegister) -> Dict[str, Any]:
         user_id = str(cursor.lastrowid)
 
     token = create_access_token({"sub": payload.email, "user_id": user_id})
+    security_logger.auth_register(payload.email, True, client_ip)
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -60,9 +72,10 @@ async def register_user(payload: UserRegister) -> Dict[str, Any]:
     }
 
 
-async def login_user(payload: UserLogin) -> Dict[str, Any]:
+async def login_user(payload: UserLogin, client_ip: str | None = None) -> Dict[str, Any]:
     db = get_db_sync()
     if db is None:
+        security_logger.auth_login_attempt(payload.email, False, client_ip, "Database not available")
         return {"error": "Database not available"}
 
     user = None
@@ -70,6 +83,7 @@ async def login_user(payload: UserLogin) -> Dict[str, Any]:
         # MongoDB
         user = await db.users.find_one({"email": payload.email})
         if not user or not verify_password(payload.password, user.get("hashed_password", "")):
+            security_logger.auth_login_attempt(payload.email, False, client_ip, "Invalid credentials")
             return {"error": "Invalid email or password"}
         user_id = str(user["_id"])
         name = user.get("name", "")
@@ -78,11 +92,13 @@ async def login_user(payload: UserLogin) -> Dict[str, Any]:
         cursor = db.execute("SELECT id, email, name, hashed_password FROM users WHERE email = ?", (payload.email,))
         row = cursor.fetchone()
         if not row or not verify_password(payload.password, row["hashed_password"]):
+            security_logger.auth_login_attempt(payload.email, False, client_ip, "Invalid credentials")
             return {"error": "Invalid email or password"}
         user_id = str(row["id"])
         name = row["name"] or ""
 
     token = create_access_token({"sub": payload.email, "user_id": user_id})
+    security_logger.auth_login_attempt(payload.email, True, client_ip)
     return {
         "access_token": token,
         "token_type": "bearer",
