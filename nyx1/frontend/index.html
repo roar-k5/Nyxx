@@ -149,12 +149,11 @@
       </section>
     </main>
 
-    <!-- API Base URL - Set this to your deployed backend URL -->
+    <!-- Optional override for a separate backend host. -->
     <script>
-      // Uncomment and set your production backend URL:
-      // window.API_BASE_URL = 'https://nyx-backend.onrender.com';
-      
-      // For local development, leave commented (defaults to localhost:5000)
+      // Leave this commented for the root Vercel deployment in this repo.
+      // Uncomment only if your frontend and backend live on different domains.
+      // window.API_BASE_URL = 'https://your-backend.vercel.app';
     </script>
     <script src="./app.js"></script>
   </body>

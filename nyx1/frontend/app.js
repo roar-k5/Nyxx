@@ -1,6 +1,6 @@
-// API Base URL - change this to your deployed backend URL
-// For local dev: http://localhost:5000
-// For production: https://your-backend.onrender.com
+// API Base URL
+// Local file preview uses localhost:5000.
+// On Vercel full-stack deploys, window.location.origin is the correct API host.
 const API_BASE =
   window.location.protocol === "file:"
     ? "http://localhost:5000"
@@ -59,7 +59,7 @@ async function sendMessage(message) {
   } catch (error) {
     addMessage(
       "assistant",
-      "I could not reach the backend. Start the Python server on port 8000, then try again."
+      "I could not reach the backend. Start the Python server on port 5000, then try again."
     );
     setStatus(error.message);
   }

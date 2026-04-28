@@ -1,209 +1,99 @@
-# NYX — Vercel Deployment Guide
+# NYX Vercel Deployment Guide
 
-## Architecture
+This repo is now set up for a single Vercel project that serves:
 
-| Service | Platform | Why |
-|---------|----------|-----|
-| **Frontend** | Vercel | Perfect for React/Vue/Flutter web |
-| **Backend** | Render/Railway | Better for Python/FastAPI + MongoDB |
+- the static web frontend from `frontend/`
+- the FastAPI backend as a Python serverless function
 
----
+## What Changed
 
-## Option 1: Frontend on Vercel + Backend on Render (Recommended)
+- `api/index.py` is the Vercel entrypoint for FastAPI.
+- `vercel.json` routes `/api/*`, `/health`, and `/config/status` to the backend.
+- `/`, `/app.js`, and `/styles.css` are served from `frontend/`.
+- Root `requirements.txt` points Vercel at `backend/requirements.txt`.
+- SQLite fallback is disabled by default in production and on Vercel.
 
-### Step 1: Deploy Backend to Render
+## Important Constraint
 
-Already done! Your backend is ready at:
-- Repo: https://github.com/roar-k5/Nyxx
-- Render deploy: See RENDER_DEPLOY.md
+Do not deploy this to Vercel without a real `MONGO_URI`.
 
-Get your backend URL after deploy: `https://nyx-backend.onrender.com`
+Your backend can fall back to SQLite during local development, but Vercel's filesystem is ephemeral. If you skip MongoDB in production, auth and mood data will not persist reliably. The repo now avoids that by refusing SQLite fallback on Vercel unless you explicitly override it.
 
-### Step 2: Prepare Frontend for Vercel
+## Deploy Steps
 
-Your frontend is in `frontend/` (vanilla JS). For Vercel, we just need to serve it.
+### 1. Push the repo to GitHub
 
-Create `frontend/vercel.json`:
+Make sure the latest changes are committed and pushed.
 
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
-}
+### 2. Create a Vercel project
+
+In Vercel:
+
+1. Import the GitHub repository
+2. Keep the **Root Directory** as the repo root
+3. Framework preset can stay **Other**
+4. Deploy
+
+### 3. Add environment variables in Vercel
+
+Project Settings -> Environment Variables:
+
+```env
+ENVIRONMENT=production
+PYTHONPATH=.
+MONGO_URI=your_mongodb_atlas_connection_string
+JWT_SECRET_KEY=your_strong_secret
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+ALLOWED_ORIGINS=https://your-project-name.vercel.app
+TRUSTED_HOSTS=your-project-name.vercel.app,*.vercel.app
 ```
 
-### Step 3: Update Frontend API URL
+Add provider-specific variables only for the LLM you actually use:
 
-In `frontend/app.js`, update the API base URL:
+- `GROQ_API_KEY`
+- `GEMINI_API_KEY`
+- `OLLAMA_BASE_URL`
+- `LMSTUDIO_BASE_URL`
 
-```javascript
-const API_BASE = 'https://nyx-backend.onrender.com';  // Your Render backend URL
-```
+### 4. Redeploy
 
-### Step 4: Deploy Frontend to Vercel
+After saving env vars, trigger a redeploy from the Vercel dashboard.
+
+## Expected Routes
+
+After deployment:
+
+- `https://your-project.vercel.app/` -> frontend
+- `https://your-project.vercel.app/health` -> backend health
+- `https://your-project.vercel.app/config/status` -> backend config
+- `https://your-project.vercel.app/api/auth/register` -> backend auth
+- `https://your-project.vercel.app/api/chat/send` -> backend chat
+
+## Local Behavior
+
+- Opening `frontend/index.html` directly still targets `http://localhost:5000`
+- Vercel deploys use same-origin requests automatically
+- You only need `window.API_BASE_URL` if frontend and backend are split across different domains
+
+## If Deployment Fails
+
+Check these first:
+
+1. `MONGO_URI` is set
+2. `JWT_SECRET_KEY` is set
+3. your LLM API key is set for the selected `LLM_PROVIDER`
+4. `TRUSTED_HOSTS` includes your Vercel hostname
+5. the project was deployed from the repo root, not from `frontend/`
+
+## CLI Deploy
+
+If you want to deploy from the terminal:
 
 ```bash
-cd /mnt/c/Users/rudra/Desktop/project/hermes/nyx1/frontend
-
-# Install Vercel CLI
-npm install -g vercel
-
-# Login
-vercel login
-
-# Deploy
+vercel
 vercel --prod
 ```
 
-Or use GitHub integration:
-1. Push `frontend/` to a separate repo (or keep in monorepo)
-2. Go to https://vercel.com/new
-3. Import your repo
-4. Root Directory: `frontend`
-5. Deploy
-
----
-
-## Option 2: Full-Stack on Vercel (Docker - Beta)
-
-Vercel now supports Docker deployments. Your entire app (frontend + backend) can run on Vercel.
-
-### Requirements
-- Vercel Pro account (Docker is paid feature)
-- `vercel.json` with Docker config
-
-### Setup
-
-Create `vercel.json` at root:
-
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "Dockerfile",
-      "use": "@vercel/docker"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "http://localhost:5000/api/$1"
-    },
-    {
-      "src": "/health",
-      "dest": "http://localhost:5000/health"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
-  ],
-  "env": {
-    "ENVIRONMENT": "production"
-  }
-}
-```
-
-**Note:** This requires Vercel Pro ($20/mo) and is more complex. Not recommended for free tier.
-
----
-
-## Option 3: Frontend + Backend Both on Vercel (Serverless)
-
-**⚠️ NOT RECOMMENDED** for this app because:
-- Vercel serverless functions have 15MB limit
-- FastAPI + ML dependencies exceed this
-- MongoDB connections don't persist between cold starts
-- LLM API calls may timeout (10s limit on free tier)
-
----
-
-## Recommended Setup: Vercel + Render
-
-```
-User → Vercel (Frontend) → Render (Backend) → MongoDB Atlas
-         ↓                      ↓
-    Static HTML/JS        FastAPI + LLM
-    vercel.app            onrender.com
-```
-
-### CORS Configuration
-
-In your Render backend `.env`:
-```
-CORS_ORIGINS=https://nyx-frontend.vercel.app,https://nyx-frontend-git-main-roar-k5.vercel.app
-```
-
-Vercel preview deployments get random URLs, so you may need to:
-1. Use `CORS_ORIGINS=*` for development (not production)
-2. Or update CORS_ORIGINS each time you deploy
-
-### Environment Variables
-
-**Vercel Dashboard → Project → Settings → Environment Variables:**
-
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://nyx-backend.onrender.com` |
-
----
-
-## Flutter Web on Vercel
-
-If you want to deploy the Flutter app instead of vanilla JS:
-
-```bash
-cd /mnt/c/Users/rudra/Desktop/project/hermes/nyx1/frontend_flutter
-
-# Build for web
-flutter build web
-
-# Deploy build/web to Vercel
-cd build/web
-vercel --prod
-```
-
----
-
-## Quick Deploy Commands
-
-```bash
-# Backend (already ready)
-cd /mnt/c/Users/rudra/Desktop/project/hermes/nyx1
-# Follow RENDER_DEPLOY.md
-
-# Frontend (vanilla JS)
-cd /mnt/c/Users/rudra/Desktop/project/hermes/nyx1/frontend
-vercel --prod
-
-# OR Flutter Web
-cd /mnt/c/Users/rudra/Desktop/project/hermes/nyx1/frontend_flutter
-flutter build web
-cd build/web
-vercel --prod
-```
-
----
-
-## Summary
-
-| What | Where | Cost |
-|------|-------|------|
-| Frontend | Vercel | Free |
-| Backend API | Render | Free |
-| Database | MongoDB Atlas | Free tier |
-| **Total** | | **$0/month** |
-
-This is the most reliable and cost-effective setup for your NYX app.
+Run those from the repo root.

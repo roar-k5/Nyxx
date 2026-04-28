@@ -16,8 +16,21 @@ _sqlite_conn: Optional[sqlite3.Connection] = None
 _sqlite_lock = threading.Lock()
 
 
-def _get_sqlite() -> sqlite3.Connection:
+def _sqlite_fallback_allowed() -> bool:
+    """Disable ephemeral SQLite in production/serverless unless explicitly enabled."""
+    allow_override = os.getenv("ALLOW_SQLITE_FALLBACK")
+    if allow_override is not None:
+        return allow_override.lower() in {"1", "true", "yes", "on"}
+
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    on_vercel = os.getenv("VERCEL") == "1"
+    return environment != "production" and not on_vercel
+
+
+def _get_sqlite() -> Optional[sqlite3.Connection]:
     global _sqlite_conn
+    if not _sqlite_fallback_allowed():
+        return None
     if _sqlite_conn is None:
         with _sqlite_lock:
             if _sqlite_conn is None:

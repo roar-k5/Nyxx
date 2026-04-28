@@ -1,0 +1,6 @@
+.venv
+frontend_flutter
+temp_nyx_repo
+docs
+__pycache__
+*.pyc
