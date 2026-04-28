@@ -2,7 +2,7 @@ services:
   - type: web
     name: nyx-backend
     runtime: docker
-    repo: https://github.com/yourusername/nyx-backend
+    repo: https://github.com/roar-k5/Nyxx.git
     branch: main
     rootDir: .
     dockerfilePath: ./Dockerfile
