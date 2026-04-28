@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from backend.authentication.auth_model import UserLogin, UserRegister
 from backend.authentication.jwt_utils import create_access_token
 from backend.authentication.password_validator import validate_password
-from backend.database.sqlite_fallback import get_db_sync
+from backend.database.sqlite_fallback import get_db
 from backend.middleware.security_logging import security_logger
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -29,7 +29,8 @@ async def register_user(payload: UserRegister, client_ip: str | None = None) -> 
         security_logger.auth_register(payload.email, False, client_ip, error_msg)
         return {"error": error_msg}
 
-    db = get_db_sync()
+    # Prefer MongoDB; fall back to SQLite only when explicitly allowed
+    db = await get_db()
     if db is None:
         security_logger.auth_register(payload.email, False, client_ip, "Database not available")
         return {"error": "Database not available"}
@@ -73,7 +74,8 @@ async def register_user(payload: UserRegister, client_ip: str | None = None) -> 
 
 
 async def login_user(payload: UserLogin, client_ip: str | None = None) -> Dict[str, Any]:
-    db = get_db_sync()
+    # Prefer MongoDB; fall back to SQLite only when explicitly allowed
+    db = await get_db()
     if db is None:
         security_logger.auth_login_attempt(payload.email, False, client_ip, "Database not available")
         return {"error": "Database not available"}
@@ -107,7 +109,8 @@ async def login_user(payload: UserLogin, client_ip: str | None = None) -> Dict[s
 
 
 async def get_current_user_from_db(email: str) -> Dict[str, Any] | None:
-    db = get_db_sync()
+    # Prefer MongoDB; fall back to SQLite only when explicitly allowed
+    db = await get_db()
     if db is None:
         return None
 
