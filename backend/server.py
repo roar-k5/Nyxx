@@ -105,7 +105,6 @@ if ENFORCE_HTTPS:
 
 @app.get("/health")
 async def health(request: Request):
-    public_limiter.raise_if_limited(request)
     return {"status": "ok"}
 
 

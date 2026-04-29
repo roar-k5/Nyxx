@@ -132,18 +132,26 @@ class ApiService {
       String.fromEnvironment('NYX_API_BASE_URL');
 
   static String get baseUrl {
-    // 1. Check environment variable (set at build time)
+    // 1. Explicit build-time override for separate frontend/backend deploys.
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
-    
-    // 2. For web production (Render)
+
+    // 2. On web, prefer same-origin so a single Render service can serve
+    // both the Flutter app and the API without hardcoded hostnames.
     if (kIsWeb) {
-      return 'https://nyx-backend-g26r.onrender.com';
+      final origin = Uri.base.origin;
+      if (origin.startsWith('http://localhost') ||
+          origin.startsWith('http://127.0.0.1') ||
+          origin.startsWith('https://localhost') ||
+          origin.startsWith('https://127.0.0.1')) {
+        return 'http://localhost:5000';
+      }
+      return origin;
     }
-    
+
     // 3. Mobile emulators
     if (Platform.isAndroid) return 'http://10.0.2.2:5000';
     if (Platform.isIOS) return 'http://localhost:5000';
-    
+
     // 4. Default fallback
     return 'http://localhost:5000';
   }

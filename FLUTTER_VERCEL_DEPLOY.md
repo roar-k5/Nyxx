@@ -30,17 +30,12 @@ flutter doctor
 flutter config --enable-web
 ```
 
-### Update API URL in Flutter Code
+### Configure the API URL
 
-In `frontend_flutter/lib/services/api_service.dart`, update the base URL:
+`frontend_flutter/lib/services/api_service.dart` now supports two modes:
 
-```dart
-// For local development
-// const String API_BASE = 'http://localhost:5000';
-
-// For production (your Render backend)
-const String API_BASE = 'https://nyx-backend.onrender.com';
-```
+- Same-origin hosting: if the Flutter web app is served by the same Render service as the API, no extra change is needed.
+- Separate frontend hosting: pass your Render backend URL at build time with `--dart-define`.
 
 ### Build
 ```bash
@@ -49,8 +44,8 @@ cd /mnt/c/Users/rudra/Desktop/project/hermes/nyx1/frontend_flutter
 # Get dependencies
 flutter pub get
 
-# Build for web
-flutter build web --release
+# Build for web against a separate Render backend
+flutter build web --release --dart-define=NYX_API_BASE_URL=https://your-backend.onrender.com
 ```
 
 This creates `frontend_flutter/build/web/` with all static files.
@@ -220,7 +215,7 @@ flutter run -d chrome
 | Issue | Fix |
 |-------|-----|
 | CORS errors | Update `CORS_ORIGINS` in backend `.env` |
-| API calls failing | Check `API_BASE` in `api_service.dart` |
+| API calls failing | Rebuild with `--dart-define=NYX_API_BASE_URL=https://your-backend.onrender.com` |
 | Build fails | Run `flutter clean` then `flutter pub get` |
 | Vercel 404 | Make sure `vercel.json` has catch-all route |
 | Images not loading | Use `Image.network()` with full URLs |
@@ -234,7 +229,7 @@ flutter run -d chrome
 | Build Flutter Web | `flutter build web --release` |
 | Deploy to Vercel | `cd build/web && vercel --prod` |
 | Deploy Backend | Follow `RENDER_DEPLOY.md` |
-| Update API URL | Edit `api_service.dart` |
+| Update API URL | Build with `--dart-define=NYX_API_BASE_URL=...` |
 | Configure CORS | Edit backend `.env` |
 
 **Total cost: $0/month** (Vercel free + Render free + MongoDB Atlas free)
@@ -247,7 +242,6 @@ flutter run -d chrome
 - `FLUTTER_VERCEL_DEPLOY.md` — This guide
 
 **Ready to deploy?**
-1. Update `api_service.dart` with your Render backend URL
-2. `flutter build web --release`
-3. `cd build/web && vercel --prod`
-4. Done!
+1. Build with `flutter build web --release --dart-define=NYX_API_BASE_URL=https://your-backend.onrender.com`
+2. `cd build/web && vercel --prod`
+3. Done!

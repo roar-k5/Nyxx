@@ -18,8 +18,14 @@ from backend.routes.mood import router as mood_router
 from backend.routes.analyze import router as analyze_router
 from backend.routes.crisis import router as crisis_router
 
-# CORS: configure allowed origins via env, default to localhost only
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5000,http://localhost:3000,http://10.0.2.2:5000")
+# CORS: support both ALLOWED_ORIGINS and legacy CORS_ORIGINS env names
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5000,http://localhost:3000,http://10.0.2.2:5000",
+    ),
+)
 CORS_ORIGINS: List[str] = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
 # In development, Flutter web runs on a random localhost port (e.g. http://localhost:51834),
@@ -85,7 +91,6 @@ if ENVIRONMENT == "production":
 
 @app.get("/health")
 async def health(request: Request):
-    public_limiter.raise_if_limited(request)
     llm_health = await llm_health_checker.check()
     return {
         "status": "ok",
